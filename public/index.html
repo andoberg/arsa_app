@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>ARSA genotypeoppslag</title>
+  <style>
+    :root {
+      --ink: #12262f;
+      --muted: #5c6d74;
+      --paper: #f5f2e9;
+      --surface: #fffdf8;
+      --line: #d8d5ca;
+      --navy: #123747;
+      --teal: #0f766e;
+      --teal-soft: #e4f3ef;
+      --blue-soft: #e7f0f4;
+      --amber: #9a5b12;
+      --amber-soft: #fff3d6;
+      --rose: #9b3a42;
+      --rose-soft: #fdebec;
+      --shadow: 0 16px 40px rgba(18, 55, 71, .08);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--paper); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(18,55,71,.035) 1px, transparent 1px) 0 0 / 38px 38px,
+        var(--paper);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    code, .variant {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 34px 0 24px; }
+    .brandline { display: flex; align-items: center; gap: 14px; }
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
+      background: var(--navy);
+      color: white;
+      font-family: Georgia, serif;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -.06em;
+    }
+    h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(28px, 4vw, 43px); line-height: 1; font-weight: 600; }
+    .subtitle { margin: 7px 0 0; color: var(--muted); font-size: 15px; }
+
+    .lookup {
+      padding: clamp(20px, 4vw, 34px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .lookup-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 20px; }
+    .eyebrow { color: var(--teal); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    h2 { margin: 4px 0 0; font-size: 22px; line-height: 1.2; }
+    .local-note { color: var(--muted); font-size: 13px; text-align: right; }
+    .fields { display: grid; grid-template-columns: 1fr 44px 1fr; align-items: end; gap: 14px; }
+    .field label { display: block; margin: 0 0 7px; font-size: 13px; font-weight: 760; }
+    .field input {
+      width: 100%;
+      height: 52px;
+      padding: 0 15px;
+      border: 1px solid #aeb8b8;
+      border-radius: 12px;
+      outline: none;
+      background: white;
+      color: var(--ink);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 16px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus { border-color: var(--teal); box-shadow: 0 0 0 4px rgba(15,118,110,.12); }
+    .plus { display: grid; place-items: center; height: 52px; color: var(--muted); font-size: 24px; }
+    .hint { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+    .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .primary, .secondary, .example {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 10px 17px;
+      font-weight: 760;
+    }
+    .primary { background: var(--teal); color: white; }
+    .primary:hover { background: #0a615b; }
+    .secondary { border-color: var(--line); background: transparent; color: var(--ink); }
+    .secondary:hover { border-color: #9ea9a8; background: white; }
+    .examples { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+    .examples > span { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .example { padding: 6px 10px; border-color: #c6d8d4; background: var(--teal-soft); color: #15564f; font-size: 12px; }
+
+    .message { margin: 18px 0 0; padding: 13px 15px; border-radius: 12px; background: var(--rose-soft); color: #742c32; font-weight: 650; }
+    .hidden { display: none !important; }
+    main { padding-bottom: 50px; }
+    #result { margin-top: 22px; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(260px, .8fr);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--navy);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+    .summary-main { padding: clamp(24px, 4vw, 38px); }
+    .tier { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.13); font-size: 12px; font-weight: 800; letter-spacing: .05em; }
+    .tier::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #7dd3c7; }
+    .summary h2 { margin: 18px 0 0; max-width: 780px; font-family: Georgia, serif; font-size: clamp(25px, 4vw, 40px); font-weight: 500; }
+    .summary .label { margin-top: 7px; color: #bfd2d9; font-size: 13px; }
+    .genotype { margin-top: 22px; color: #dbe7ea; font-size: 14px; }
+    .summary-side { display: flex; flex-direction: column; justify-content: center; padding: 28px; background: rgba(255,255,255,.065); }
+    .stat-label { color: #bfd2d9; font-size: 12px; font-weight: 760; letter-spacing: .06em; text-transform: uppercase; }
+    .stat-value { margin-top: 6px; font-size: 22px; font-weight: 760; }
+    .stat-detail { margin-top: 8px; color: #dbe7ea; font-size: 13px; }
+
+    .warnings { display: grid; gap: 10px; margin: 16px 0; }
+    .warning { padding: 13px 15px; border: 1px solid #e7cc91; border-radius: 12px; background: var(--amber-soft); color: #70420c; font-size: 13px; }
+    .warning.danger { border-color: #e6b2b7; background: var(--rose-soft); color: #742c32; }
+    .warning.info { border-color: #bfd4dd; background: var(--blue-soft); color: #234e5f; }
+
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .card { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding-bottom: 15px; border-bottom: 1px solid var(--line); }
+    .card-kicker { color: var(--muted); font-size: 12px; font-weight: 760; text-transform: uppercase; }
+    .card h3 { margin: 3px 0 0; font-size: 21px; }
+    .route-pill { white-space: nowrap; padding: 5px 9px; border-radius: 999px; background: var(--blue-soft); color: #244f60; font-size: 11px; font-weight: 800; }
+    dl { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(0, 1.3fr); gap: 0; margin: 10px 0 0; }
+    dt, dd { margin: 0; padding: 9px 0; border-bottom: 1px solid #ece9e0; font-size: 13px; }
+    dt { padding-right: 14px; color: var(--muted); }
+    dd { overflow-wrap: anywhere; font-weight: 650; }
+    .observed { color: var(--teal); }
+    .predicted { color: var(--amber); }
+    .severity { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 820; }
+    .severity-Severe { background: var(--rose-soft); color: var(--rose); }
+    .severity-Moderate { background: var(--amber-soft); color: var(--amber); }
+    .severity-Mild { background: #edf1d9; color: #59651e; }
+    .severity-Benign { background: var(--teal-soft); color: var(--teal); }
+
+    .external-evidence { margin-top: 18px; padding-top: 17px; border-top: 2px solid var(--teal-soft); }
+    .evidence-heading { margin: 0 0 4px; font-size: 14px; }
+    .evidence-intro { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+    .source-stack { display: grid; gap: 9px; }
+    .source-box { padding: 11px 12px; border-radius: 10px; background: #f5f7f4; font-size: 12px; }
+    .source-box strong { display: block; margin-bottom: 3px; font-size: 12px; }
+    .source-box p { margin: 3px 0 0; color: var(--muted); }
+    .source-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+    .source-link { color: var(--teal); font-weight: 760; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    .predictor-details summary { cursor: pointer; color: var(--teal); font-weight: 760; }
+    .predictor-list { display: grid; gap: 4px; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 500; }
+    .predictor-row { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 3px; border-bottom: 1px dotted #d8d5ca; }
+    .predictor-row strong { color: var(--ink); white-space: nowrap; }
+
+    .method-details { margin-top: 18px; }
+    .method-details > summary { cursor: pointer; color: var(--teal); font-size: 13px; font-weight: 700; }
+    .method {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .method section { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-md); background: rgba(255,253,248,.75); }
+    .method h3 { margin: 0 0 7px; font-size: 14px; }
+    .method p { margin: 0; color: var(--muted); font-size: 12px; }
+    footer { padding: 0 0 34px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 20px, 1180px); }
+      header { padding-top: 24px; }
+      .lookup-head { display: block; }
+      .local-note { margin-top: 8px; text-align: left; }
+      .fields { grid-template-columns: 1fr; gap: 10px; }
+      .plus { height: 18px; }
+      .summary, .cards, .method { grid-template-columns: 1fr; }
+      .summary-side { border-top: 1px solid rgba(255,255,255,.12); }
+      dl { grid-template-columns: 1fr; }
+      dt { padding: 9px 0 2px; border-bottom: 0; }
+      dd { padding: 0 0 9px; }
+    }
+
+    @media print {
+      body { background: white; }
+      .lookup, .actions, .examples, .method-details, footer { display: none !important; }
+      .shell { width: 100%; }
+      header { padding: 0 0 16px; }
+      .summary, .card { box-shadow: none; break-inside: avoid; }
+    }
+    .clinical-reports { margin: 16px 0; }
+    .clinical-reports > summary, .model-section > summary { cursor: pointer; color: var(--teal); font-weight: 700; padding: 10px 0; }
+    .clinical-reports .source-stack { margin-top: 10px; max-height: 600px; overflow-y: auto; }
+    .source-box, .source-box strong, .evidence-intro, dt, dd { font-size: 14px; }
+    .source-box p { overflow-wrap: anywhere; }
+    .trace { margin-top: 10px; font-size: 13px; }
+    .trace summary { cursor: pointer; }
+    .model-section { margin-top: 24px; border-top: 1px solid var(--line); }
+    .external-evidence p { line-height: 1.5; }
+    .variant, dd, .source-link { overflow-wrap: anywhere; }
+    @media print { .clinical-reports .source-stack { max-height: none; overflow: visible; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brandline">
+        <div class="mark" aria-hidden="true">AR</div>
+        <div>
+          <h1>ARSA genotypeoppslag</h1>
+          <p class="subtitle">Kjente genotyper: rapportert fenotype og litteratur. Ukjente: laveste AlphaMissense som utforskende skår, uten fenotypeklasse.</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="lookup" aria-labelledby="lookup-title">
+        <div class="lookup-head">
+          <div>
+            <div class="eyebrow">NM_000487.6 · NP_000478.3</div>
+            <h2 id="lookup-title">Skriv inn begge ARSA-allelene</h2>
+          </div>
+          <div class="local-note">Kjører lokalt i nettleseren<br><span id="dataset-status"></span></div>
+        </div>
+        <form id="lookup-form" novalidate>
+          <div class="fields">
+            <div class="field">
+              <label for="allele-1">Allel 1</label>
+              <input id="allele-1" name="allele-1" list="variant-list" autocomplete="off" spellcheck="false" placeholder="f.eks. c.370G&gt;A">
+            </div>
+            <div class="plus" aria-hidden="true">+</div>
+            <div class="field">
+              <label for="allele-2">Allel 2</label>
+              <input id="allele-2" name="allele-2" list="variant-list" autocomplete="off" spellcheck="false" placeholder="f.eks. c.465+1G&gt;A">
+            </div>
+          </div>
+          <datalist id="variant-list"></datalist>
+          <p class="hint">Godtar cDNA-navn som <code>c.370G&gt;C</code> eller kortformen <code>370G&gt;C</code> på NM_000487.6, samt protein-HGVS som <code>p.G124R</code> eller <code>p.Gly124Arg</code>. Homozygot: skriv samme variant to ganger.</p>
+          <div class="actions">
+            <button class="primary" id="evaluate-button" type="button">Vis genotypevurdering</button>
+            <button class="secondary" id="clear-button" type="button">Tøm</button>
+            <button class="secondary hidden" id="print-button" type="button">Skriv ut resultat</button>
+          </div>
+          <div class="examples" aria-label="Eksempeloppslag">
+            <span>Prøv:</span>
+            <button class="example" type="button" data-a1="c.465+1G>A" data-a2="c.1283C>T">observert genotype</button>
+            <button class="example" type="button" data-a1="c.370G>A" data-a2="c.370G>A">målt aktivitet</button>
+            <button class="example" type="button" data-a1="c.370G>C" data-a2="c.370G>C">ny variant uten klasse</button>
+          </div>
+        </form>
+        <div id="message" class="message hidden" role="alert"></div>
+      </section>
+
+      <div id="result" aria-live="polite"></div>
+
+      <details class="method-details">
+        <summary>Om datagrunnlaget og beregningen</summary>
+        <div class="method" aria-label="Datagrunnlag og beregning">
+        <section><h3>1. Publisert klinisk evidens</h3><p>Pasientrapporter er grunnlaget, også én rapport. Opplysninger via Trinidad er merket når kasuset ikke er separat kontrollert. Kjente feil og konflikter beholdes som varsler.</p></section>
+        <section><h3>2. Avledet allelklasse</h3><p>Severe eller Moderate kan avledes fra klinisk evidens. Det er ikke det samme som observert fenotype. Pseudodefisiens og ikke-kausale kontrollvarianter skilles ut.</p></section>
+        <section><h3>3. Betinget matrisesvar</h3><p>Arbeidsregelen er Severe + Severe = infantil/sen-infantil, Moderate + Severe = juvenil og Moderate + Moderate = voksen. Benign + enhver klasse gir asymptomatisk i regelen.</p></section>
+        <section><h3>4. Målinger og modellskårer</h3><p>Enzymaktivitet fra laboratoriekonstrukt og skårer fra prediktorverktøy vises separat fra den klinisk avledede allelklassen.</p></section>
+        <section><h3>Antall rapporter</h3><p>Antall er rapport-/tabellrader, ikke bekreftet unike pasienter. Mulige dubletter er ikke ferdig avklart.</p></section>
+        </div>
+      </details>
+    </main>
+
+    <details class="clinical-reports"><summary>Gjennomgåtte rapporter som ennå ikke kan kobles sikkert til et variantoppslag</summary><div id="unmapped-literature" class="source-stack"></div></details>
+    <section id="gold-standard-summary" class="external-evidence"></section>
+    <footer id="footer-meta"></footer>
+  </div>
+
+  <script id="arsa-data" type="application/json"></script>
+<script src="./data-0-96f03076bec2.js"></script>
+<script src="./data-1-dce186614652.js"></script>
+<script src="./data-2-bfdfa20677cf.js"></script>
+<script src="./data-3-6a243d8aa5c5.js"></script>
+<script src="./data-4-b0190a4e7153.js"></script>
+<script src="./data-5-0a45cac264d7.js"></script>
+<script src="./data-6-549518c57391.js"></script>
+<script src="./data-7-4b128f64b6f8.js"></script>
+<script src="./data-8-69f2b1ec85b8.js"></script>
+<script src="./data-9-c39145692b21.js"></script>
+<script src="./data-10-785e94b446d4.js"></script>
+<script src="./data-11-2303fdad2be4.js"></script>
+<script src="./data-12-f7997de94051.js"></script>
+<script src="./data-13-0fe75b4ad2db.js"></script>
+  <script>
+  "use strict";
+  const RAW_DATA_TEXT = document.getElementById("arsa-data").textContent.trim();
+  if (!RAW_DATA_TEXT.startsWith("{")) {
+    document.getElementById("dataset-status").textContent = "Åpner ferdig app …";
+    window.location.replace(new URL("arsa_genotype_lookup.html", window.location.href).href);
+  } else {
+  const DATA = JSON.parse(RAW_DATA_TEXT);
+  const GOLD = DATA.gold_standard_current || DATA.gold_standard_v1;
+  const AA3 = {ala:"A",arg:"R",asn:"N",asp:"D",cys:"C",gln:"Q",glu:"E",gly:"G",his:"H",ile:"I",leu:"L",lys:"K",met:"M",phe:"F",pro:"P",ser:"S",thr:"T",trp:"W",tyr:"Y",val:"V",ter:"X"};
+  const TIER_RANK = {P2:2,P3:3,P4:4,P6:6};
+  const TIER_LABEL = {
+    P1:"Publisert genotype · klinisk evidens",
+    P2:"Betinget klinisk anker / kontroll",
+    P3:"Klasse avledet fra litteraturrapport",
+    P6:"Genotypefenotype ikke avklart"
+  };
+  const PHENO_LABEL = {"Infantile/late-infantile":"Infantil / sen-infantil",Juvenile:"Juvenil",Adult:"Voksen",Asymptomatic:"Asymptomatisk", "Presymptomatic before HSCT":"Presymptomatisk før HSCT",Presymptomatic:"Presymptomatisk", "No clear progressive MLD onset":"Ingen klart dokumentert progressiv MLD-debut"};
+  const phenoLabel = value => PHENO_LABEL[value] || value || "Ikke oppgitt";
+  const qs = id => document.getElementById(id);
+
+
+  function node(tag, className, text) {
+    const item = document.createElement(tag);
+    if (className) item.className = className;
+    if (text !== undefined && text !== null) item.textContent = String(text);
+    return item;
+  }
+
+  function normalize(value) {
+    let text = String(value || "").trim().replace(/\s+/g, "");
+    text = text.replace(/^NM_000487\.6:/i, "").replace(/^NP_000478\.3:/i, "");
+    if (/^\d+(?:[+-]\d+)?[ACGTN]+>[ACGTN]+$/i.test(text)) text = `c.${text}`;
+    text = text.replace(/^p\.\(/i, "p.").replace(/\)/g, "");
+    const three = text.match(/^p\.?([A-Za-z]{3})(\d+)([A-Za-z]{3})$/);
+    if (three && AA3[three[1].toLowerCase()] && AA3[three[3].toLowerCase()]) {
+      text = `p.${AA3[three[1].toLowerCase()]}${three[2]}${AA3[three[3].toLowerCase()]}`;
+    }
+    const one = text.match(/^p\.?([A-Za-z])(\d+)([A-Za-z])$/);
+    if (one) text = `p.${one[1].toUpperCase()}${one[2]}${one[3].toUpperCase()}`;
+    else if (/^[A-Za-z]\d+[A-Za-z]$/.test(text)) text = `p.${text.toUpperCase()}`;
+    return text.toLowerCase();
+  }
+
+  function resolve(value) {
+    const key = normalize(value);
+    const canonical = DATA.aliases[key];
+    if (!canonical) return null;
+    const base = DATA.alleles[canonical];
+    let ids = DATA.literature.aliases[key] || [];
+    const exactAliasMatch = ids.length > 0;
+    if (!ids.length && key.startsWith("c.")) ids = DATA.literature.aliases[(base.hgvsp || "").toLowerCase()] || [];
+    const result = {...base, route:{tier:"P6",severity:null}, literature_variant:null, literature_candidates:ids};
+    if (ids.length === 1) {
+      const clinical = DATA.literature.variants[ids[0]];
+      result.literature_variant = clinical;
+      result.clinical_variant_id = clinical.id;
+      result.route = clinical.route;
+      result.protein_lookup = key.startsWith("p.");
+    }
+    const protein = key.startsWith("p.");
+    const options = (base.dna_identity || {}).snv_hgvsc || [];
+    const selectedDna = !protein ? key : options.length === 1 ? options[0].toLowerCase() : null;
+    const panel = base.phase7_predictor_evidence || {};
+    result.selected_predictor_evidence = (panel.exact_cdna || {})[selectedDna] || null;
+    result.query_identity = {kind:protein ? "protein" : "dna", input_key:key, selected_dna_key:selectedDna, candidate_hgvsc:options, dna_score_basis:!protein ? "entered_dna" : selectedDna ? "unique_snv_inference" : "not_selected", clinical_scope:"no_linked_report"};
+    if (protein && options.length !== 1) { result.phase7_predictor_evidence = null; result.external_evidence = {}; }
+    result.clinical_exact_match = false;
+    result.allowed_observed_case_ids = [];
+    const v = result.literature_variant;
+    if (v) {
+      if (protein) {
+        result.query_identity.clinical_scope = "protein_evidence";
+        result.allowed_observed_case_ids = v.case_ids;
+      } else {
+        const allowed = exactAliasMatch && v.dna_identity.exact_class_match_allowed;
+        result.clinical_exact_match = Boolean(allowed);
+        result.query_identity.clinical_scope = allowed ? "existing_exact_mapping" : "related_protein_only";
+        if (!allowed) result.route = {tier:"P6",severity:null};
+        result.allowed_observed_case_ids = Object.entries(v.dna_identity.case_identity).filter(([id,c])=>exactAliasMatch && c.exact_dna_match_allowed).map(([id])=>id);
+      }
+    }
+    return result;
+  }
+
+  function observedGenotype(first, second) {
+    const pair = [first.clinical_variant_id, second.clinical_variant_id];
+    if (!pair.every(Boolean)) return null;
+    const key = pair.sort().join("||");
+    const permitted = new Set(first.allowed_observed_case_ids.filter(id=>second.allowed_observed_case_ids.includes(id)));
+    const cases = Object.values(DATA.literature.cases).filter(c => [...c.alleles].sort().join("||") === key && permitted.has(c.id));
+    if (!cases.length) return null;
+    const counts = {};
+    cases.filter(c => c.usable_literature_report).forEach(c => c.phenotypes.forEach(p => {counts[p] = (counts[p] || 0) + 1;}));
+    return {identity_scope:[first,second].some(a=>a.query_identity.kind === "protein") ? "protein_evidence" : "identity_qualified_dna_mapping",case_ids:cases.map(c=>c.id),report_rows:cases.length,usable_report_rows:cases.filter(c=>c.usable_literature_report).length,phenotype_counts:counts,phenotypes:Object.keys(counts).sort()};
+  }
+
+  function genotypeKey(first, second) {
+    return [first.clinical_variant_id || first.id, second.clinical_variant_id || second.id].sort().join("||");
+  }
+
+  function matrix(first, second) {
+    const known = new Set(["Benign","Mild","Moderate","Severe","Unknown"]);
+    const a = known.has(first) ? first : "Unknown";
+    const b = known.has(second) ? second : "Unknown";
+    return DATA.phenotype_matrix[`${a}||${b}`] || DATA.phenotype_matrix[`${b}||${a}`] || null;
+  }
+
+  function evaluate(first, second) {
+    const key = genotypeKey(first, second);
+    const observed = observedGenotype(first, second);
+    const matrixTier = [first.route.tier, second.route.tier].sort((a,b) => TIER_RANK[b] - TIER_RANK[a])[0];
+    const pairKeys = [first, second].map(a => a.query_identity.kind === "dna" && a.query_identity.selected_dna_key ? a.query_identity.selected_dna_key.replace(/\./g, "").toUpperCase() : null);
+    const dnaKey = pairKeys.every(Boolean) ? pairKeys.slice().sort().join("|") : null;
+    const clinicalGenotype = DATA.clinical_closure && Object.values(DATA.clinical_closure.genotypes).find(g => g.genotype.map(d => d.replace(/\./g, "").toUpperCase()).sort().join("|") === dnaKey);
+    const reportedPhenotypes = [...new Set([...(clinicalGenotype ? clinicalGenotype.phenotypes : []), ...(observed ? observed.phenotypes : [])])].sort();
+    const observedPhenotype = reportedPhenotypes.length ? reportedPhenotypes.join(" / ") : null;
+    return {
+      tier: observed || clinicalGenotype ? "P1" : "P6",
+      matrixTier,
+      phenotype: observedPhenotype,
+      matrixPhenotype: null,
+      clinicalGenotype,
+      reportedPhenotypes,
+      exploratoryScore: exploratoryScore(first, second),
+      observedPhenotype,
+      agreement: null,
+      observed: observed || null,
+      first,
+      second,
+      key,
+      thresholdUncertainty:false,
+      possiblePhenotypes:[]
+    };
+  }
+
+  function exploratoryScore(first, second) {
+    const values = [first, second].map(a => a.alphamissense);
+    const eligible = [first, second].every(a => a.consequence === "Missense variant") && values.every(v => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1);
+    return {alleles:values, value:eligible ? Math.min(...values) : null};
+  }
+
+  function formatNumber(value, digits=2) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
+    return Number(value).toLocaleString("nb-NO", {minimumFractionDigits:digits,maximumFractionDigits:digits});
+  }
+
+  function severity(label) {
+    const span = node("span", `severity severity-${label}`, label || "Uavklart");
+    return span;
+  }
+
+  function addRow(list, term, value, valueClass) {
+    if (value === null || value === undefined || value === "" || (Array.isArray(value) && !value.length)) return;
+    list.append(node("dt", "", term));
+    const dd = node("dd", valueClass || "");
+    if (value instanceof Node) dd.append(value);
+    else dd.textContent = Array.isArray(value) ? value.join("; ") : String(value);
+    list.append(dd);
+  }
+
+  function sourceLink(label, url) {
+    if (!/^https?:\/\//i.test(String(url || ""))) return node("span", "", label + " (lenke mangler)");
+    const link = node("a", "source-link", label);
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    return link;
+  }
+
+  function selectedExternalRows(rows, rawInput) {
+    const values = Array.isArray(rows) ? rows : [];
+    const normalized = normalize(rawInput);
+    if (!normalized.startsWith("c.")) return values;
+    return values.filter(item => {
+      const hgvsc = Array.isArray(item.hgvsc) ? item.hgvsc : [item.hgvsc];
+      return hgvsc.some(value => normalize(value) === normalized);
+    });
+  }
+
+  function percentFromAf(value) {
+    if (value === null || value === undefined) return "—";
+    const percent = Number(value) * 100;
+    return percent.toLocaleString("nb-NO", {minimumFractionDigits: 0, maximumFractionDigits: 8}) + " %";
+  }
+
+  function goldStatus(id) {
+    const gold = DATA.gold_standard_current || DATA.gold_standard_v1;
+    const record = gold && gold.cases[id];
+    const box = node("div", "source-box");
+    if (!record) { box.append(node("p", "", "Ikke vurdert i gjeldende gullstandard")); return box; }
+    box.append(node("strong", record.status === "primary" ? "observed" : "predicted", gold.status_labels[record.status]));
+    box.append(node("p", "", record.target_set === "primary" ? "Inkludert i primært kasusgrunnlag. Genotyper med flere rapporterte utfall er ikke én-klasses fasit." : record.target_set === "secondary" ? "Kun utvidet Trinidad-grunnlag; ikke primærfasit." : "Holdt utenfor målsettene i gjeldende gullstandard."));
+    if (record.reasons.length) box.append(node("p", "", record.reasons.join(" · ")));
+    if (record.patient_cluster) box.append(node("p", "", "Samlet pasientkobling: " + record.patient_cluster));
+    const closure = DATA.clinical_closure;
+    const hap = closure && closure.cases[id];
+    if (hap) {
+      box.append(node("p", "", "Haplotype: " + closure.labels[hap.status]));
+      if (hap.source) box.append(sourceLink(hap.locator || "Haplotypekilde", hap.source));
+    }
+    return box;
+  }
+
+  function caseList(caseIds, title) {
+    const section = node("details", "clinical-reports");
+    section.open = caseIds.length <= 3;
+    section.append(node("summary", "", title));
+    const stack = node("div", "source-stack");
+    caseIds.forEach(id => {
+      const c = DATA.literature.cases[id];
+      const pub = DATA.literature.publications[c.publication_id];
+      const box = node("article", "source-box");
+      box.append(sourceLink(pub.reference, pub.url));
+      box.append(goldStatus(id));
+      const followup = DATA.incomplete_case_review && DATA.incomplete_case_review.cases[id];
+      if (followup) {
+        box.append(warning(followup.label + ": " + followup.note, "info"));
+        box.append(node("p", "", "Kontrollgrunnlag: " + followup.locator));
+      }
+      box.append(node("p", c.reviewed ? "observed" : "predicted", c.review_label));
+      const genotype = c.alleles.map(a => {
+        const v = DATA.literature.variants[a];
+        if (!v) return "Uavklart allel";
+        const identity = v.dna_identity.case_identity[c.id];
+        return identity && !identity.exact_dna_match_allowed ? v.hgvsp + " (pasientens DNA uavklart)" : v.hgvsc + (v.hgvsp ? " (" + v.hgvsp + ")" : "");
+      }).join(" / ");
+      box.append(node("strong", "variant", (followup && followup.status === "primary_compilation_identity_conflict" ? "Trinidads omstridte kobling: " : "") + genotype));
+      box.append(node("p", "", "Rapportert fenotype: " + c.phenotypes.map(phenoLabel).join(" / ")));
+      box.append(node("p", "", "Debut: " + (c.onset_years.length ? c.onset_years.map(x=>formatNumber(x,2)).join(" / ") + " år" : "ikke oppgitt / ikke verifisert")));
+      box.append(node("p", "", c.reviewed ? "Debutkilde: separat kildegjennomgang. " + c.onset_basis : "Debutkilde: Trinidad; ikke separat kontrollert."));
+      if (c.warnings.length) box.append(warning("Holdt utenfor klassegrunnlaget: " + c.warnings.join(" "), "danger"));
+      if (c.possible_duplicate_cluster) box.append(node("p", "predicted", "Mulig dublett – ikke bekreftet uavhengig pasient."));
+      if (c.identity_correction) box.append(warning("Variantnavnet er korrigert fra primærkilden. Se kildespor under.", "info"));
+      const trace = node("details", "trace");
+      trace.append(node("summary", "", "Kildespor og kontrollnotat"));
+      trace.append(node("p", "", "Trinidad " + c.source_sheet + ", rad " + c.source_excel_row + ". Opprinnelig genotypetekst: " + c.reported_genotype));
+      trace.append(node("p", "", "Opprinnelig tabellfenotype: " + c.index_phenotype + "; tabellens aldersfelt: " + (c.index_onset_years === null ? "ikke oppgitt" : c.index_onset_years + " år") + ". Beholdt som kildehistorikk, ikke automatisk korrekt debut."));
+      trace.append(node("p", "", "Fase i samlingen: " + c.phase_status + ". Kildegjennomgang: " + pub.source_read_status));
+      if (c.source_locators.length) trace.append(node("p", "", c.source_locators.join("; ")));
+      if (c.review_note) trace.append(node("p", "", c.review_note));
+      trace.append(node("p", "", "Raden er ikke bekreftet som en uavhengig pasient på tvers av publikasjoner."));
+      box.append(trace);
+      stack.append(box);
+    });
+    section.append(stack);
+    return section;
+  }
+
+  function clinicalAddition(allele) {
+    const additions = DATA.clinical_literature_additions;
+    const q = allele.query_identity;
+    // Never carry a report across nucleotide alternatives at the same residue.
+    return additions && q.kind === "dna" && q.selected_dna_key
+      ? additions.variants[q.selected_dna_key.replace(/\./g, "").toUpperCase()] : null;
+  }
+
+  function clinicalEvidencePanel(allele) {
+    const panel = node("section", "external-evidence");
+    panel.append(node("h4", "evidence-heading", "1 · Publisert klinisk evidens"));
+    const addition = clinicalAddition(allele);
+    if (GOLD) {
+      const ids = new Set([...(allele.literature_variant ? allele.literature_variant.case_ids : []), ...(addition ? addition.observations.map(o=>o.id) : [])]);
+      const counts = {primary:0, secondary:0, unresolved:0};
+      ids.forEach(id => { const r=GOLD.cases[id]; if(r) counts[r.status]++; });
+      panel.append(node("p", "", "Gjeldende gullstandard for dette oppslaget: " + counts.primary + " primærkontrollerte · " + counts.secondary + " Trinidad-formidlede · " + counts.unresolved + " uavklarte/holdt utenfor. Kildeoppføringer, ikke unike pasienter."));
+    }
+    if (addition) {
+      panel.append(node("p", "observed", addition.summary));
+      panel.append(node("p", "", (addition.reported_as.length ? "Historisk navn: " + addition.reported_as.join(" / ") + ". " : "") + "Gjennomgang " + DATA.clinical_literature_additions.review_date + "."));
+      addition.observations.forEach(item => {
+        const box = node("div", "source-box");
+        box.append(sourceLink(item.reference + " · PMID " + item.pmid, item.url));
+        box.append(goldStatus(item.id));
+        box.append(node("p", "observed", item.phenotype));
+        box.append(node("p", "", "Genotype: " + item.genotype));
+        box.append(node("p", "", item.note));
+        box.append(node("p", "", item.review_status + " · " + item.locator));
+        panel.append(box);
+      });
+      panel.append(node("p", "", addition.deduplication));
+      addition.pending_sources.forEach(item => {
+        panel.append(sourceLink(item.reference + " · kilde til videre kontroll", item.url));
+        panel.append(node("p", "", item.status));
+      });
+    }
+    const v = allele.literature_variant;
+    const coverage = DATA.literature_coverage && DATA.literature_coverage.variants[allele.id];
+    if (coverage) {
+      const detail = node("details", "trace");
+      detail.append(node("summary", "", "Litteraturdekning og referanser til videre kontroll"));
+      detail.append(node("p", "", coverage.historical_case_rows + " historiske pasientrader; " + coverage.previously_reviewed_rows + " merket separat gjennomgått; " + coverage.secondary_only_rows + " kun gjengitt via sekundærkilde."));
+      detail.append(node("p", "", "Referansene nedenfor er hentet fra ClinVar. De kan gjelde metode, samme kodon eller andre varianter, og er ikke bekreftede kasus for denne varianten."));
+      coverage.citation_links.forEach(p => detail.append(sourceLink(p.title + " · PMID " + p.pmid, p.url)));
+      if (!coverage.citation_links.length) detail.append(node("p", "", "Ingen ytterligere referanser i denne databasekoblingen. Dette er ikke et fullstendig negativt litteratursøk."));
+      panel.append(detail);
+    }
+    if (!v) {
+      panel.append(node("p", "", addition ? "Rapportene over er nye litteraturtillegg. De er ennå ikke lagt inn som klassifiserende kasus i det historiske registeret." : allele.literature_candidates.length > 1
+        ? "Proteinbetegnelsen peker på flere rapporterte DNA-endringer. Bruk cDNA-navn for et entydig klinisk oppslag."
+        : "Ingen eksakt koblet pasientrapport i dette litteraturregisteret. Dette beviser ikke at varianten aldri er rapportert."));
+      if (allele.literature_candidates.length > 1) {
+        const cases = [...new Set(allele.literature_candidates.flatMap(id=>DATA.literature.variants[id].case_ids))];
+        if (cases.length) panel.append(caseList(cases, "Relaterte proteinrapporter · ingen DNA-endring valgt"));
+      }
+      return panel;
+    }
+    panel.append(node("p", "", v.case_ids.length + " rapport-/tabellrad(er); " + v.usable_report_rows + " uten aktive eksklusjonsflagg. Ikke et bekreftet antall unike pasienter."));
+    const q = allele.query_identity;
+    if (q.clinical_scope === "related_protein_only") panel.append(warning("Relatert proteinrapport – ikke bekreftet pasientrapport for DNA-endringen du skrev inn. Rapporten beholdes, men brukes ikke som eksakt DNA-klasse eller genotypetreff.", "info"));
+    else if (allele.protein_lookup) panel.append(node("p", "predicted", "Proteinoppslag: litteraturen gjelder proteinendringen. Det er ikke i seg selv dokumentasjon av pasientens eksakte DNA-endring."));
+    const review = v.dna_identity.source_review;
+    if (review) {
+      if (review.flags.includes("publication_dna_disagrees_with_register")) panel.append(warning("Kildeavvik: artikkelen oppgir " + review.publication_dna_candidate + ", registerets historiske kobling er " + review.current_hgvsc + ". Pasienttabellen er ikke separat verifisert; ingen automatisk rettelse er gjort.", "danger"));
+      if (review.flags.includes("source_reference_disagreement")) panel.append(warning("Kildens DNA-navn " + review.publication_dna_candidate + " passer ikke med proteinendringen på NM_000487.6. Navneavviket er uavklart.", "danger"));
+      if (review.flags.includes("pseudodeficiency_cis_context")) panel.append(warning("Originalkilden omtaler varianten på pseudodefisiensbakgrunn. Full haplotype må avklares.", "info"));
+      panel.append(sourceLink("Originalkilde til identitetskontrollen", review.url));
+    }
+    if (v.control) {
+      panel.append(warning(v.control.role === "established_pseudodeficiency_control" ? "Pseudodefisiensvariant – ikke brukt som sykdomsallel." : "Vanlig ikke-kausal kontrollvariant – ikke brukt som sykdomsallel.", "info"));
+      v.control.evidence_ids.forEach(id => {
+        if (id.startsWith("PMID:")) panel.append(sourceLink(id, "https://pubmed.ncbi.nlm.nih.gov/" + id.slice(5) + "/"));
+      });
+    }
+    if (v.identity_note) panel.append(warning(v.identity_note, "info"));
+    if (v.name_review_required) panel.append(warning("Dette kildenavnet er ikke ferdig normalisert. Det er beholdt for sporbarhet, men brukes ikke som klassegrunnlag.", "danger"));
+    if (v.consequence_warning) panel.append(warning("Trinidads konsekvensetikett er inkonsistent med DNA-endringen. Ikke tolk dette som en ordinær missensevariant.", "danger"));
+    if (v.case_ids.length) panel.append(caseList(v.case_ids, "Vis rapportert genotype, partnerallel, debut og publikasjon"));
+    return panel;
+  }
+
+  function externalEvidencePanel(allele, rawInput) {
+    const evidence = allele.external_evidence || {};
+    const v = allele.literature_variant;
+    const selectedDna = allele.query_identity.selected_dna_key;
+    if (!selectedDna) {
+      const panel = node("section", "external-evidence");
+      panel.append(node("h4", "evidence-heading", "Befolkningsdata · gnomAD"));
+      panel.append(node("p", "", "DNA-endring er ikke valgt. Frekvenser og ClinVar-funn tilordnes ikke automatisk fra et proteinnavn. Søk på eksakt DNA-navn for nukleotidspesifikke opplysninger."));
+      return panel;
+    }
+    let gnomad = selectedExternalRows(evidence.gnomad, selectedDna);
+    // Corrected identities must never inherit frequency annotations from old joins.
+    if (v && v.population.match_status === "identity_corrected_not_requeried") gnomad = [];
+    else if (!gnomad.length && v && normalize(v.hgvsc) === selectedDna && v.population.url) gnomad = [{...v.population,hgvsc:v.hgvsc}];
+    const panel = node("section", "external-evidence");
+    panel.append(node("h4", "evidence-heading", "Befolkningsdata · gnomAD"));
+    panel.append(node("p", "evidence-intro", DATA.metadata.gnomad_dataset + " · snapshot " + DATA.metadata.gnomad_snapshot_date + ". Befolkningsfunn er ikke en pasientrapport; helsestatus er ikke fastslått."));
+    if (gnomad.length) {
+      gnomad.forEach(item => {
+        const box = node("div", "source-box");
+        box.append(node("p", "", (item.hgvsc || item.variant_id) + ": AC " + formatNumber(item.joint_ac,0) + " / AN " + formatNumber(item.joint_an,0) + "; frekvens " + percentFromAf(item.joint_af) + "; homozygote " + formatNumber(item.homozygote_count,0) + "."));
+        box.append(sourceLink("Åpne eksakt variant i gnomAD", item.url));
+        box.append(node("p", "", "Kilde: " + (item.dataset_id || item.dataset || DATA.metadata.gnomad_dataset) + " · dato " + (item.retrieved_at ? item.retrieved_at.slice(0,10) : item.snapshot_date || DATA.metadata.gnomad_snapshot_date)));
+        const filters = [item.exome_filters,item.genome_filters,item.flags,...(item.filter_flags || [])].filter(Boolean);
+        if (filters.length) box.append(node("p", "", "Kvalitetsflagg: " + filters.join("; ")));
+        panel.append(box);
+      });
+    } else panel.append(node("p", "", "Ingen sikkert koblede frekvenstall tilgjengelig. Ukjent betyr ikke 0."));
+    const clinvar = selectedExternalRows(evidence.clinvar, selectedDna);
+    if (clinvar.length) {
+      const details = node("details", "trace");
+      details.append(node("summary", "", "ClinVar · databaseannotasjon, ikke klinisk fasit"));
+      clinvar.forEach(item => {
+        details.append(node("p", "", (item.classification || "uten klassifikasjon") + " · " + (item.review_status || "reviewstatus mangler") + " · snapshot " + DATA.metadata.clinvar_snapshot_date));
+        details.append(sourceLink(item.vcv_accession || "Åpne ClinVar", item.url));
+      });
+      panel.append(details);
+    }
+    const search = evidence.targeted_literature;
+    if (search) {
+      panel.append(node("p", "", "Målrettet litteratursøk " + search.search_date + ": " + search.relevant_exact_publication_count + " relevante eksakte publikasjoner funnet i dette søket. Ikke et bevis for fravær i all litteratur."));
+      panel.append(sourceLink("PubMed-søk", search.pubmed_search_url));
+    }
+    return panel;
+  }
+
+  function selectedPhase7Evidence(allele, rawInput) {
+    return allele.selected_predictor_evidence;
+  }
+
+  function predictorDetails(score) {
+    const details = node("details", "predictor-details");
+    details.append(node("summary", "", `Vis alle ${score.finite_predictor_count} prediktorer`));
+    const list = node("div", "predictor-list");
+    const metadata = DATA.metadata.phase7_predictor_panel;
+    metadata.eligible_predictor_keys.forEach(key => {
+      if (score.predictors[key] === undefined) return;
+      const row = node("div", "predictor-row");
+      row.append(
+        node("span", "", metadata.predictor_labels[key] || key),
+        node("strong", "", `${formatNumber(score.predictors[key] * 100, 1)}. persentil`)
+      );
+      list.append(row);
+    });
+    details.append(list);
+    return details;
+  }
+
+  function alleleCard(allele, number, rawInput) {
+    const card = node("article", "card");
+    const head = node("div", "card-head");
+    const titles = node("div");
+    titles.append(node("div", "card-kicker", `Allel ${number}`));
+    titles.append(node("h3", "variant", allele.id));
+    head.append(titles, node("span", "route-pill", allele.route.tier));
+    card.append(head);
+    const list = node("dl");
+    const literature = allele.literature_variant;
+    const q = allele.query_identity;
+    if (q.kind === "dna") addRow(list, "DNA-endring du søkte på", rawInput);
+    else addRow(list, q.candidate_hgvsc.length === 1 ? "Én mulig SNV på referansen" : "Mulige DNA-endringer – ikke valgt", q.candidate_hgvsc.length ? q.candidate_hgvsc.join(" / ") : "Ingen enkelt-SNV; eksakt DNA må oppgis");
+    addRow(list, "Protein", literature ? literature.hgvsp : allele.hgvsp);
+    card.append(list, clinicalEvidencePanel(allele));
+    const derived = node("details", "external-evidence");
+    derived.append(node("summary", "evidence-heading", "2 · Historisk avledet allelklasse · ikke brukt til genotypesvar"));
+    derived.append(severity(allele.route.severity || "Unknown"));
+    if (GOLD) {
+      const locked = literature && GOLD.alleles[literature.id];
+      derived.append(node("p", "", locked && locked.conditional_allele_class ? "Låst primærforankret klasse i v1: " + locked.conditional_allele_class + " (betinget av matrisen)." : "Klassen over er tidligere oppslagsgrunnlag; ingen entydig primærforankret allelklasse er låst for denne varianten i gullstandard v1."));
+    }
+    const addition = clinicalAddition(allele);
+    derived.append(node("p", "", q.clinical_scope === "related_protein_only" ? "Pasientrapporten er bare koblet på proteinnivå. Ingen klinisk klasse overføres automatisk til denne DNA-endringen." : literature ? literature.class_basis : addition ? addition.class_note : "Ingen klinisk klasse fra litteraturgrunnlaget. Modellskårer erstatter ikke dette."));
+    if (addition && literature) derived.append(node("p", "", addition.class_note));
+    if (literature && q.clinical_scope !== "related_protein_only" && literature.class_support_case_ids.length) {
+      const support = literature.class_support_case_ids.map(id=>DATA.literature.cases[id]);
+      derived.append(node("p", "predicted", support.some(c=>!c.reviewed) ? "Klassen bygger på Trinidad-gjengivelse som ikke er separat gjennomgått." : "Støtterapportene er separat gjennomgått."));
+    }
+    if (literature && literature.has_homozygous_class_conflict) derived.append(warning("Homozygote rapporter passer ikke én entydig matrisebasert allelklasse. Se fenotypevariasjonen i litteraturen.", "danger"));
+    if (literature) literature.seed_source_urls.forEach(url=>derived.append(sourceLink("Kilde til klinisk anker",url)));
+    card.append(derived, externalEvidencePanel(allele, rawInput));
+    const extra = node("details", "model-section");
+    extra.append(node("summary", "", "3 · Tilleggsdata: enzymmålinger og modellestimater"));
+    const modelList = node("dl");
+    if (!q.selected_dna_key) extra.append(warning("DNA-spesifikke skårer og kombinasjonsskårer er holdt tilbake. Ingen DNA-endring er valgt fra proteinnavnet. AlphaMissense og ESM-2 nedenfor gjelder proteinendringen.", "info"));
+    else if (q.dna_score_basis === "unique_snv_inference") extra.append(node("p", "predicted", "Skåroppslaget bygger på én mulig enkeltnukleotidendring på referansen, ikke separat bekreftelse av pasientens DNA."));
+    else extra.append(node("p", "predicted", "DNA-skårene gjelder endringen du skrev inn. De bekrefter ikke at en publisert pasient hadde akkurat dette allelet."));
+    (allele.measurements || []).forEach((measurement, index) => {
+      const label = index ? "Annen konstruktmåling" : "Målt aktivitet i konstrukt";
+      addRow(modelList, label, `${formatNumber(measurement.percent_wt)} % WT · ${measurement.assay}`, "observed");
+    });
+    if (allele.historical_activity_model) {
+      const historical = allele.historical_activity_model;
+      const interval = historical.lower_95 === null ? "" : ` (modellintervall ${formatNumber(historical.lower_95)}–${formatNumber(historical.upper_95)} %)`;
+      addRow(modelList, "Historisk aktivitetsmodell", `${formatNumber(historical.percent_wt)} % WT${interval} · ikke brukt til allelklasse eller matrisesvar`, "predicted");
+    }
+    const phase7 = selectedPhase7Evidence(allele, rawInput);
+    if (phase7) {
+      const amPercentile = phase7.predictors.am;
+      addRow(modelList, "Prediktorkilde", q.dna_score_basis === "entered_dna" ? "Eksakt DNA-input" : "Én mulig kodende SNV på referansen");
+      addRow(modelList, "AlphaMissense hovedskår", `${formatNumber(allele.alphamissense, 4)} · ${formatNumber(amPercentile * 100, 1)}. persentil blant alle 3 237 ARSA-SNV-er`, "predicted");
+      addRow(modelList, "Prediktorenighet", `${phase7.top_quartile_count} av ${phase7.finite_predictor_count} i øverste kvartil · ${phase7.top_decile_count} i øverste desil · median ${formatNumber(phase7.predictor_median * 100, 1)} · IQR ${formatNumber(phase7.predictor_q25 * 100, 1)}–${formatNumber(phase7.predictor_q75 * 100, 1)}`, "predicted");
+      addRow(modelList, "Utforskende fireverktøyskår", `${formatNumber(phase7.phase7_point_score, 4)} · median av AlphaMissense, ESM-2, ClinPred og CADD`, "predicted");
+      addRow(modelList, "Balansert sammenligningsskår", `${formatNumber(phase7.phase7_balanced_score, 4)} · median av PopEVE, GMVP og PrimateAI`, "predicted");
+      addRow(modelList, "Enkel sammenligningsskår", `${formatNumber(phase7.phase7_simple_score, 4)} · gjennomsnitt av AlphaMissense og PopEVE`, "predicted");
+      addRow(modelList, "Alle prediktorer", predictorDetails(phase7));
+      addRow(modelList, "Kategori fra skårene", "Ingen. Panelet gir kontinuerlig molekylær evidens, ikke Mild/Moderate/Severe-klasse.", "predicted");
+    } else if (allele.zero_shot) {
+      const score = allele.zero_shot;
+      addRow(modelList, "AlphaMissense hovedskår", `${formatNumber(allele.alphamissense, 4)} · ${formatNumber(score.alphamissense_percentile * 100, 1)}. persentil`, "predicted");
+      addRow(modelList, "Supplerende ESM-2", `${formatNumber(score.esm2_percentile * 100, 1)}. persentil`, "predicted");
+      addRow(modelList, "Kategori fra skårene", "Ingen. Her vises bare proteinbaserte estimater; ikke et nukleotidspesifikt panel.", "predicted");
+    } else if (allele.alphamissense !== null && allele.alphamissense !== undefined) {
+      addRow(modelList, "AlphaMissense", `${formatNumber(allele.alphamissense, 4)} · ${allele.alphamissense_class || "uten klasse"}`);
+    }
+    addRow(modelList, "Anvendbarhet", allele.applicability_tier);
+    extra.append(modelList);
+    card.append(extra);
+    return card;
+  }
+
+  function warning(text, kind) {
+    return node("div", `warning ${kind || ""}`.trim(), text);
+  }
+
+  function render(result) {
+    const root = qs("result");
+    root.replaceChildren();
+    const summary = node("section", "summary");
+    const main = node("div", "summary-main");
+    main.append(node("div", "tier", TIER_LABEL[result.tier]));
+    const observed = result.observed;
+    const pairKeys = [result.first, result.second].map(a => a.query_identity.kind === "dna" && a.query_identity.selected_dna_key ? a.query_identity.selected_dna_key.replace(/\./g, "").toUpperCase() : null);
+    const supplements = [clinicalAddition(result.first), clinicalAddition(result.second)].filter(Boolean);
+    const supplementalGenotypes = pairKeys.every(Boolean) ? [...new Map(supplements.flatMap(s=>s.observations).filter(o => o.exact_genotype && [...o.exact_genotype].sort().join("|") === [...pairKeys].sort().join("|")).map(o=>[o.id,o])).values()] : [];
+    const hasClinical = result.reportedPhenotypes.length;
+    const title = hasClinical ? result.reportedPhenotypes.map(phenoLabel).join(" / ") : observed ? "Rapport funnet – grunnlaget er omstridt" : supplementalGenotypes.length ? "Genotypen er publisert · se rapportert klinikk" : "Ingen eksakt genotype i registeret";
+    main.append(node("h2", "", title));
+    main.append(node("div", "label", hasClinical ? "Observert fenotype i litteraturen – ikke modellprediksjon" : "Ingen fenotypeklasse tildeles uten klinisk kildegrunnlag. Se eventuelle rapporter nedenfor."));
+    main.append(node("div", "genotype variant", result.inputs.join(" / ")));
+    supplementalGenotypes.forEach(o => {
+      main.append(sourceLink(o.reference + " · " + o.locator, o.url));
+      main.append(node("p", "", o.phenotype));
+    });
+    if (observed && observed.identity_scope === "protein_evidence") main.append(node("p", "", "Litteraturtreff på proteinnivå – ikke automatisk bekreftet eksakt DNA-genotype."));
+    const side = node("div", "summary-side");
+    side.append(node("div", "stat-label", "Utforskende genotypeskår · laveste AlphaMissense"));
+    const closure = DATA.clinical_closure;
+    const genotypeKey = pairKeys.every(Boolean) ? pairKeys.slice().sort().join("|") : null;
+    const variation = result.clinicalGenotype;
+    const score = result.exploratoryScore;
+    side.append(node("div", "stat-value", score.value === null ? "Skår kan ikke beregnes" : formatNumber(score.value, 4)));
+    side.append(node("div", "stat-detail", "Allel 1: " + formatNumber(score.alleles[0], 4) + " · Allel 2: " + formatNumber(score.alleles[1], 4)));
+    side.append(node("div", "stat-detail", score.value === null ? "Krever AlphaMissense for to missense-alleler. Manglende skår erstattes ikke." : "Minimum av råskårene (0–1), ikke prosent eller sannsynlighet for en fenotype."));
+    side.append(node("div", "stat-detail", "Ingen fenotypeklasse utledes fra skåren. Litteraturfunn overstyres ikke."));
+    if ([result.first,result.second].some(a=>a.query_identity.kind === "protein")) side.append(node("div", "stat-detail", "Proteinbasert skår; bekrefter ikke eksakt DNA-genotype."));
+    summary.append(main, side);
+    root.append(summary);
+    if (closure) {
+      const evidence = node("section", "source-box");
+      evidence.append(node("h3", "", "Gullstandard v1.1 · publisert variasjon og haplotype"));
+      evidence.append(node("p", "", "Modellutvikling frosset etter Pompe-piloten. Ingen trent modell brukes i genotypesvaret."));
+      if (variation) {
+        const appraisal = DATA.variation_evidence && DATA.variation_evidence.genotypes[variation.genotype.slice().sort().join("|")];
+        if (appraisal) {
+          evidence.append(node("h4", appraisal.status === "documented" ? "observed" : "predicted", appraisal.label));
+          evidence.append(node("p", "", appraisal.interpretation));
+          if (appraisal.primary_supplement) {
+            const extra = appraisal.primary_supplement;
+            const panel = node("div", "source-box");
+            panel.append(node("h4", "", extra.title));
+            panel.append(sourceLink("PMID " + extra.pmid + " · " + extra.locator, extra.url));
+            panel.append(node("p", "", extra.evidence));
+            for (const c of extra.cases) panel.append(node("p", "", "Pasient " + c.patient + " · forfatterrapportert adult MLD · Diagnosealder: " + c.diagnosis_age_years + " år · Debutalder: ikke oppgitt i denne kilden"));
+            panel.append(node("p", "", extra.limits));
+            evidence.append(panel);
+          }
+          evidence.append(node("p", "", "PD-bakgrunn: " + appraisal.pd));
+          if (appraisal.pd_supplement) {
+            evidence.append(node("p", "", appraisal.pd_supplement.text));
+            evidence.append(sourceLink("Beerepoot 2020 · separat PD-serie", appraisal.pd_supplement.url));
+          }
+          evidence.append(node("p", "", "Duplikater: " + appraisal.duplicates));
+          if (appraisal.family) evidence.append(node("p", "", "Slektskap: " + appraisal.family));
+          const records = node("details", "clinical-reports");
+          records.open = true;
+          records.append(node("summary", "", "Debutalder og fenotype per kildeoppføring"));
+          for (const r of appraisal.rows) {
+            const entry = node("div", "source-box");
+            entry.append(sourceLink("PMID " + r.pmid + " · " + r.id, r.url));
+            entry.append(node("p", "", r.phenotypes.map(phenoLabel).join(" / ") + " · debut: " + (r.onset_years.length ? r.onset_years.map(v => Number(v).toLocaleString("nb-NO", {maximumFractionDigits: 2}) + " år").join(" / ") : "ikke oppgitt i registeret") + " · " + (r.status === "primary" ? "Primærkontrollert" : "Trinidad-formidlet, ikke separat primærkontrollert")));
+            if (r.locator) entry.append(node("p", "", r.locator));
+            records.append(entry);
+          }
+          evidence.append(records);
+        }
+        evidence.append(node("p", "", "Rapporterte utfall: " + variation.phenotypes.map(phenoLabel).join(" / ")));
+        evidence.append(node("p", "", variation.source_rows + " kilderader · " + variation.available_patient_clusters + " tilgjengelige pasientklynger; ikke bekreftet uavhengige pasienter."));
+        for (const [tier, counts] of Object.entries(variation.evidence_tiers)) evidence.append(node("p", "", (tier === "primary" ? "Primærkontrollert: " : "Trinidad-formidlet: ") + (Object.entries(counts).map(([p,n]) => phenoLabel(p) + ": " + n).join(" · ") || "Ingen")));
+        if (variation.onset_years.length) evidence.append(node("p", "", "Rapportert debut (år): " + variation.onset_years.join(" · ")));
+        for (const s of variation.sources) {
+          evidence.append(sourceLink(s.id, s.url));
+          evidence.append(goldStatus(s.id));
+        }
+      } else evidence.append(node("p", "", "Ingen inkludert eksakt DNA-genotype i gullstandard v1.1. Skårene nedenfor er ikke en validert fenotypeklasse."));
+      const supplemental = closure.supplemental_dutch_series.filter(r => r.genotype.map(d => d.replace(/\./g, "").toUpperCase()).sort().join("|") === genotypeKey);
+      if (supplemental.length) {
+        evidence.append(node("h4", "", "Nederlandsk tilleggsserie · ikke automatisk lagt til gullstandarden"));
+        evidence.append(sourceLink("Beerepoot 2020 · supplement", "https://pmc.ncbi.nlm.nih.gov/articles/PMC7476914/"));
+        for (const r of supplemental) evidence.append(node("p", "", r.patient + ": " + r.phenotype + " · rapportert PD-antall " + r.pd_count + ". Fase/slektskap ikke avklart."));
+        evidence.append(node("p", "", "Mulig overlapp mellom publikasjoner; ikke tell dette som nye uavhengige pasienter. Senere dokumenterte søsken er ikke sikkert koblet til disse pasient-ID-ene."));
+      }
+      root.append(evidence);
+    }
+
+    const notices = node("div", "warnings");
+    if (observed) {
+      const counts = Object.entries(observed.phenotype_counts).map(([p,n])=>phenoLabel(p) + ": " + n).join(" · ");
+      notices.append(warning(observed.report_rows + " rapport-/tabellrad(er), hvorav " + observed.usable_report_rows + " uten aktive eksklusjonsflagg. " + counts + ". Mulige dubletter er ikke ferdig avklart.", "info"));
+      root.append(caseList(observed.case_ids, "Kilder for denne genotypen · vis fenotype, debut og kontrollstatus"));
+      if (observed.phenotypes.length > 1) notices.append(warning("Flere fenotyper er rapportert for samme genotype. Appen erstatter ikke variasjonen med én flertallsklasse.", "danger"));
+    }
+    if ([result.first,result.second].some(x=>x.literature_variant && x.literature_variant.control)) notices.append(warning("En kontroll-/pseudodefisiensvariant er ikke et kausalt MLD-allel. En sykdomsrapport med en slik genotype kan skyldes ufullstendig genotyping eller annen årsak; den bekrefter ikke matriseregelen.", "info"));
+    root.append(notices);
+
+    const cards = node("section", "cards");
+    cards.append(alleleCard(result.first, 1, result.inputs[0]), alleleCard(result.second, 2, result.inputs[1]));
+    root.append(cards);
+    qs("print-button").classList.remove("hidden");
+  }
+
+  function run() {
+    const rawFirst = qs("allele-1").value;
+    const rawSecond = qs("allele-2").value;
+    const first = resolve(rawFirst);
+    const second = resolve(rawSecond);
+    const message = qs("message");
+    message.classList.add("hidden");
+    if (!rawFirst.trim() || !rawSecond.trim()) {
+      message.textContent = "Skriv inn begge alleler. For homozygot genotype må samme variant stå i begge felt.";
+      message.classList.remove("hidden");
+      qs("result").replaceChildren();
+      qs("print-button").classList.add("hidden");
+      return;
+    }
+    if (!first || !second) {
+      const missing = [!first ? `«${rawFirst}»` : null, !second ? `«${rawSecond}»` : null].filter(Boolean).join(" og ");
+      message.textContent = `Kunne ikke løse ${missing} mot NM_000487.6 / NP_000478.3. Kontroller HGVS-navnet; verktøyet gjetter ikke.`;
+      message.classList.remove("hidden");
+      qs("result").replaceChildren();
+      qs("print-button").classList.add("hidden");
+      return;
+    }
+    const result = evaluate(first, second);
+    result.inputs = [rawFirst, rawSecond];
+    render(result);
+    qs("result").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  qs("evaluate-button").addEventListener("click", run);
+  qs("lookup-form").addEventListener("submit", event => { event.preventDefault(); run(); });
+  qs("clear-button").addEventListener("click", () => {
+    qs("allele-1").value = "";
+    qs("allele-2").value = "";
+    qs("message").classList.add("hidden");
+    qs("result").replaceChildren();
+    qs("print-button").classList.add("hidden");
+    qs("allele-1").focus();
+  });
+  qs("print-button").addEventListener("click", () => window.print());
+  document.querySelectorAll(".example").forEach(button => button.addEventListener("click", () => {
+    qs("allele-1").value = button.dataset.a1;
+    qs("allele-2").value = button.dataset.a2;
+    run();
+  }));
+  const list = qs("variant-list");
+  (DATA.unmapped_literature_observations || []).forEach(o => {
+    const box = node("article", "source-box");
+    box.append(sourceLink(o.reference, o.url));
+    box.append(goldStatus(o.id));
+    box.append(node("p", "", o.locator));
+    box.append(node("strong", "variant", o.genotype));
+    box.append(node("p", "", o.phenotype));
+    box.append(node("p", "", o.note));
+    qs("unmapped-literature").append(box);
+  });
+  DATA.suggestions.forEach(value => { const option = node("option"); option.value = value; list.append(option); });
+  qs("dataset-status").textContent = DATA.literature.counts.report_rows + " litteraturrader · " + DATA.literature.counts.publications + " publikasjoner · versjon " + DATA.metadata.schema_version;
+  if (GOLD) {
+    const s = GOLD.summary;
+    const panel = qs("gold-standard-summary");
+    panel.append(node("h3", "", (DATA.gold_standard_current ? "Gullstandard v1.1" : "Gullstandard v1") + " · låst klinisk evidensgrunnlag"));
+    panel.append(node("p", "", s.status_counts.primary + " primærkontrollerte · " + s.status_counts.secondary + " Trinidad-formidlede · " + s.status_counts.unresolved + " uavklarte/holdt utenfor. Tallene er kildeoppføringer, ikke unike pasienter."));
+    panel.append(node("p", "", s.primary_genotypes + " primære genotypegrupper; " + s.primary_single_label_genotypes + " med entydig rapportert type. Pasientfenotype og allelklasse er separate. Ingen modell er trent i denne låsingen."));
+    panel.append(node("p", "", "Primærkontrollert: eget kontrollert klinisk kildegrunnlag. Trinidad-formidlet: sekundært sammenligningsgrunnlag. Uavklart: se konkret begrunnelse ved kasuset. Gjenpubliseringer gir ikke ekstra uavhengige pasienter."));
+    qs("dataset-status").textContent += DATA.gold_standard_current ? " · gullstandard v1.1 · modellutvikling frosset" : " · gullstandard v1";
+  }
+  qs("footer-meta").textContent = "Klinisk grunnlag: publiserte rapporter samlet i Trinidad, med separate kildekontroller og merkede unntak · gnomAD " + DATA.metadata.gnomad_snapshot_date + " · bygget " + DATA.metadata.generated_date + " · " + DATA.metadata.run_context.source_git_revision.slice(0,8);
+
+  }
+  </script>
+</body>
+</html>

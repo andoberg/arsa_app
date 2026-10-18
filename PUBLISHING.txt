@@ -1,0 +1,43 @@
+ARSA web release preparation — 2026-10-18
+
+Status: local preparation only; not uploaded or deployed.
+Proposed GitHub repository: andoberg/arsa_app (not created).
+Proposed Cloudflare Worker name: arsa-app (not created).
+Existing unrelated site: https://palliasjon-app.andoberg.workers.dev/
+Existing Git integration verified in dashboard: andoberg/palliasjon_app, main.
+
+Only public/ is served. The research repository, raw papers, credentials,
+models and analysis scripts are not included in this release package.
+public/ DOES contain the complete data already embedded in the offline app,
+including published case details and predictor scores. Downloading the site
+exposes those embedded data. Before upload, confirm intended audience and
+redistribution terms for these data. A private GitHub repo does not make the
+deployed website private. Use Cloudflare Access if restricted access is chosen.
+
+No inference or evidence content was changed. release-manifest.json records
+the offline source hash, data hash, and per-file hashes. npm test checks
+lossless reconstruction and Cloudflare's individual static file size limit.
+The local single-file app remains unchanged.
+
+GitHub setup after owner authorization:
+1. Create the dedicated repository; push this directory only.
+2. Cloudflare Workers Builds: connect that repository and main branch.
+3. Root directory: / ; build command: npm ci && npm test
+4. Deploy command: npm run deploy
+5. Confirm intended visibility/access before the first deployment.
+6. Test actual browser lookups and literature links at the resulting URL.
+
+Do not connect this package to palliasjon-app or overwrite its files.
+Do not commit node_modules, .cloudflare, .wrangler, .env or credentials.
+The CLI is project-local, not installed globally. Its generated static-site
+adapter uses wrangler.config.ts; the primary configuration is cloudflare.config.ts.
+
+Validation commands:
+  npm ci
+  npm test
+  npx cf deploy --dry-run
+
+The Cloudflare MCP login is configured with OAuth but was not exposed as a
+tool in the preparation session. Browser account/project access was verified.
+The cf CLI uses separate authentication; MCP login is not a CLI login.
+Workers Builds uses its own Git integration and deployment credentials.
