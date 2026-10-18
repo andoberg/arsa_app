@@ -3,8 +3,11 @@ ARSA web release preparation — 2026-10-18
 Status: Cloudflare deployed directly with cf on 2026-10-18.
 Public app: https://arsa-app.andoberg.workers.dev/
 Cloudflare version: 4b3ee811-ad57-4c06-b213-c9f40ce3cf17
-GitHub repository: andoberg/arsa_app created; initial push awaits GitHub CLI login.
-Worker name: arsa-app. GitHub-to-Cloudflare automatic builds NOT yet connected.
+GitHub repository: https://github.com/andoberg/arsa_app (public, main).
+Worker name: arsa-app. GitHub-to-Cloudflare automatic builds connected.
+Production branch: main. Build: npm ci && npm test. Deploy: npm run deploy.
+Preview builds disabled. No new API credential created; existing Cloudflare
+build credential selected (dashboard label: palliasjon-app build token).
 Owner explicitly authorized public deployment on 2026-10-18.
 Live Chrome click tests passed for 370G>C/370G>C (no phenotype class)
 and 946G>A/946G>A (reported infantile phenotype with literature link).
