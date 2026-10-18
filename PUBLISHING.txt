@@ -1,8 +1,13 @@
 ARSA web release preparation — 2026-10-18
 
-Status: local preparation only; not uploaded or deployed.
-Proposed GitHub repository: andoberg/arsa_app (not created).
-Proposed Cloudflare Worker name: arsa-app (not created).
+Status: Cloudflare deployed directly with cf on 2026-10-18.
+Public app: https://arsa-app.andoberg.workers.dev/
+Cloudflare version: 4b3ee811-ad57-4c06-b213-c9f40ce3cf17
+GitHub repository: andoberg/arsa_app created; initial push awaits GitHub CLI login.
+Worker name: arsa-app. GitHub-to-Cloudflare automatic builds NOT yet connected.
+Owner explicitly authorized public deployment on 2026-10-18.
+Live Chrome click tests passed for 370G>C/370G>C (no phenotype class)
+and 946G>A/946G>A (reported infantile phenotype with literature link).
 Existing unrelated site: https://palliasjon-app.andoberg.workers.dev/
 Existing Git integration verified in dashboard: andoberg/palliasjon_app, main.
 
